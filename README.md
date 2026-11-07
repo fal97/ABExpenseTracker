@@ -43,7 +43,25 @@ The frontend contains only the public Supabase key. PostgreSQL row-level policie
 5. Add both `VITE_SUPABASE_*` variables to the build environment before deploying. These variables are compiled into the frontend; rebuild when changing them.
 6. Update Supabase Auth Site URL to the resulting HTTPS URL.
 
-`public/_redirects` provides the SPA fallback. No custom backend server is required. A manifest supports standalone presentation on compatible browsers; offline writes and a full offline PWA are not implemented.
+`public/_redirects` provides the SPA fallback. A manifest supports standalone presentation on compatible browsers. The service worker handles push notifications; offline writes and offline page caching are not implemented.
+
+## Daily push reminders
+
+Settings includes per-account, per-device daily reminders (default 20:00 in the device's time zone). Users choose a time and IANA time zone and can disable the reminder. Reminders continue after closing Pocket or signing out; turn them off in Settings before signing out if desired. iPhone/iPad users need iOS/iPadOS 16.4+, must add Pocket to the Home Screen and open that icon, then tap Enable daily reminder and allow notifications.
+
+Server setup is required before notifications can be delivered:
+
+1. Run `supabase/reminders.sql` in your Supabase SQL editor.
+2. Generate VAPID keys with `npx web-push generate-vapid-keys --json`. Keep the private key secret and retain the same key pair across deployments.
+3. Set `VITE_VAPID_PUBLIC_KEY` to the public key in the frontend build environment.
+4. Set Supabase Edge Function secrets `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a real `mailto:` contact), and `REMINDER_CRON_SECRET` (a long random secret). The function uses the built-in `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; never put the service role or private key in Vite variables.
+5. Deploy with `supabase functions deploy send-reminders`. `supabase/config.toml` disables JWT verification for this cron endpoint; it authenticates every request using `x-cron-secret` instead.
+6. In Supabase Vault, create `pocket_project_url` with your project URL and `pocket_reminder_cron_secret` with the same cron secret. Run `supabase/reminder-cron.sql` once to schedule delivery every minute. See [Supabase's scheduling guide](https://supabase.com/docs/guides/functions/schedule-functions).
+7. Rebuild/deploy the frontend, enable a reminder on the phone, set its time a few minutes ahead, close Pocket, and verify the lock-screen notification. Tap it to reopen Pocket, then verify Turn off reminder prevents the next delivery.
+
+The sender uses each saved time zone, catches up later the same day after missed cron runs, claims up to 100 due subscriptions per minute, retries transient failures after five minutes, and removes expired subscriptions. Delivery may be delayed by connectivity, Focus, or push-provider availability. A crash after sending but before recording success can cause a retry; notifications use a stable tag to replace the previous daily alert. Neither notification content nor worker caching contains expense records. Live delivery, database policies, and the Edge runtime must be verified on the hosted project; local worker tests do not verify Apple's push service.
+
+Run worker tests with `node --test tests/reminders.test.mjs`.
 
 ## Backups and limitations
 
