@@ -69,3 +69,9 @@ Run worker tests with `node --test tests/reminders.test.mjs`.
 - For full backups, export `tracker_data` from Supabase along with a database dump using Supabase's database backup workflow. CSV reports do not preserve category settings or budgets.
 - Hosted authentication, ownership policies, and concurrent cloud saves require validation against a real Supabase project before relying on cloud mode. No cloud project or public deployment is created automatically.
 - Login supports account creation and sign-in; password reset, receipts, recurring expenses, and offline synchronization are future improvements.
+
+## Expenses outside the budget
+
+Use **Outside budget** to record Wedding Expenses, Learning and Development, or a custom category. This section has monthly history, a monthly total, an all-time total, search, category filtering, editing, deletion, and a separate CSV export. These records are excluded from monthly budget usage, remaining budget, and regular dashboard/report charts and comparisons. The expense editor lets you move a record between Monthly budget and Outside budget. Existing records remain budgeted. Both sections use the same local or cloud persistence; no database migration is required.
+
+Manage these categories in **Settings → Outside-budget categories**, or use **Manage outside-budget categories** from the Outside budget section. Add your own names and archive categories you no longer use; historical expenses keep their categories. Categories save with your local or cloud data and appear in the outside-budget expense dropdown.
